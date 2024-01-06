@@ -1,0 +1,9 @@
+----------------Parameters:--------------
+      V: 500    E: 62126
+    \rho: 0.300000    cutoff: 150000    threshold: 250
+
+----------------Results:--------------
+The found clique size is 13.
+The found clique:
+13
+48 70 93 120 138 193 225 238 251 253 259 340 486

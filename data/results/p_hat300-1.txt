@@ -1,0 +1,9 @@
+----------------Parameters:--------------
+      V: 300    E: 33917
+    \rho: 0.300000    cutoff: 90000    threshold: 150
+
+----------------Results:--------------
+The found clique size is 8.
+The found clique:
+8
+49 54 88 153 244 274 280 296

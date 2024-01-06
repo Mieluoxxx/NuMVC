@@ -5,6 +5,3 @@ build/
 
 # MacOS Cache
 .DS_Store
-
-# project
-data/

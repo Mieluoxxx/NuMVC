@@ -2,14 +2,12 @@
 #include <stdlib.h>
 #include <string.h>
 #include "numvc.h"
-#include "utils.h"
 using namespace std;
 
 
 int main(int argc, char* argv[]) {
-    string rootPath = "C:/Users/weiyi/Github/NuMVC/";
-    string filename = "C1000.9.txt";
-
+    string filename = "p_hat1500-1.txt";
+    string rootPath = "/Users/moguw/Github/NuMVC/";
     string rawPath = rootPath + "data/raw/" + filename;
     string processedPath = rootPath + "data/processed/" + filename;
     string resultsPath = rootPath + "data/results/" + filename;

@@ -4,8 +4,8 @@
 #include <list>
 #include <set>
 
-#define MAXV 780
-#define MAXE 254000
+#define MAXV 1600
+#define MAXE 500079
 
 typedef std::list<int> Set;
 

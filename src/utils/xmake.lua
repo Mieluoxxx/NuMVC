@@ -1,3 +1,3 @@
 target("utils")
-    set_kind("static")
+    set_kind("binary")
     add_files("*.cpp")

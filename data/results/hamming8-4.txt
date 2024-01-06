@@ -1,0 +1,9 @@
+----------------Parameters:--------------
+      V: 256    E: 11776
+    \rho: 0.300000    cutoff: 76800    threshold: 128
+
+----------------Results:--------------
+The found clique size is 16.
+The found clique:
+16
+2 29 43 56 80 83 101 122 135 156 174 177 201 214 228 255
