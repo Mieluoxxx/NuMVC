@@ -1,8 +1,9 @@
-#include "numvc.h"
+#include <iostream>
+#include <stdlib.h>
 #include <cstring>
 #include <ctime>
 #include <cmath>
-#include <iostream>
+#include "numvc.h"
 
 using namespace std;
 
@@ -12,7 +13,7 @@ int threshold;
 float rho;
 
 int conf_change[MAXV];
-int dscore[MAXV];
+int d_score[MAXV];
 int G[MAXV][MAXV] = {0};
 int edge_weight[MAXE] = {0};
 int timer_mod[MAXV];
@@ -38,128 +39,104 @@ Edge::Edge(int aa, int bb) : a(aa), b(bb) {
 }
 
 
-// cover the edge e
+
 void cover(int e) {
     uncovered.erase(e);
 }
-// uncover the edge e
+
+
 void uncover(int e) {
     uncovered.insert(e);
 }
 
-void add(int v) {
+void vertex_add(int v) {
     C.insert(v);
     v_in_c[v] = 1;
-    dscore[v] = -dscore[v];
+    d_score[v] = -d_score[v];
 
-    Set::iterator pi = v_to_e[v].begin();
-    for (; pi != v_to_e[v].end(); pi++) {
-        int edgidx = *pi;  // v's pi'th edge
+    for (int edgidx : v_to_e[v]) {
         int neigh = edge[edgidx].a + edge[edgidx].b - v;
 
-        if (!v_in_c[neigh]) {  // neighbor isn't in the cover
-                               // then the edge should be added to covered.
-            dscore[neigh] -= edge_weight[edgidx];
+        if (!v_in_c[neigh]) {
+            d_score[neigh] -= edge_weight[edgidx];
             conf_change[neigh] = 1;
             cover(edgidx);
         } else {
-            // needn't set confchange, cuz it must be 1 for those in C
-            dscore[neigh] += edge_weight[edgidx];
+            d_score[neigh] += edge_weight[edgidx];
         }
     }
 }
 
-// remove v from C
-void remove(int v) {
+// vertex_remove v from C
+void vertex_remove(int v) {
     C.erase(v);
     v_in_c[v] = 0;
-    dscore[v] = -dscore[v];
+    d_score[v] = -d_score[v];
     conf_change[v] = 0;
 
-    Set::iterator pi = v_to_e[v].begin();
-    for (; pi != v_to_e[v].end(); pi++) {
-        int edgidx = *pi;  // v's pi'th edge
+    for (int edgidx : v_to_e[v]) {
         int neigh = edge[edgidx].a + edge[edgidx].b - v;
 
-        if (!v_in_c[neigh]) {  // neighbor isn't in the cover
-                               // then the edge should be removed from the
-                               // covered.
-            dscore[neigh] += edge_weight[edgidx];
+        if (!v_in_c[neigh]) {
+            d_score[neigh] += edge_weight[edgidx];
             conf_change[neigh] = 1;
             uncover(edgidx);
         } else {
-            // needn't set confchange, cuz it must be 1 for those in C
-            dscore[neigh] -= edge_weight[edgidx];
+            d_score[neigh] -= edge_weight[edgidx];
         }
     }
 }
 
 // Update bestC as C
 void update_bestC() {
-    // bestC.clear();
-    bestC.assign(C.begin(), C.end());
-    for (int i = 1; i <= V; i++) {
-        bestv_in_c[i] = v_in_c[i];
-    }
+    bestC = C;  // 使用 std::list 的赋值操作符进行复制
+    copy(begin(v_in_c), end(v_in_c), begin(bestv_in_c));
 }
 
-// update best dscore v with oldest time
 void update_best_dscv() {
-    Set::iterator pi = C.begin();
-    best_dscv = *pi++;
-    int tmpv;
-    for (; pi != C.end(); pi++) {
-        tmpv = *pi;
+    best_dscv = *C.begin(); // 初始化为第一个节点
+    for (int tmpv : C) {
         if (tmpv == tabu_remove)
             continue;
-        if (dscore[tmpv] < dscore[best_dscv])
+        if (d_score[tmpv] < d_score[best_dscv])
             continue;
-        else if (dscore[tmpv] > dscore[best_dscv])
-            best_dscv = tmpv;
-        // timer_mod less, means earlier modified.
-        else if (timer_mod[tmpv] < timer_mod[best_dscv])
+        else if (d_score[tmpv] > d_score[best_dscv] || timer_mod[tmpv] < timer_mod[best_dscv])
             best_dscv = tmpv;
     }
 }
 
-// weight forgetting mechanism
-void forget_edge_weight(){
+void forget_edge_weight() {
     int sum_w = 0;
-    memset(dscore, 0, sizeof(dscore));
+    fill(begin(d_score), end(d_score), 0);
 
     for (int i = 1; i <= E; i++) {
-        edge_weight[i] = edge_weight[i] * rho;
+        edge_weight[i] *= rho;
         sum_w += edge_weight[i];
-        
-        // update dscore
-        // if both vertexs of edge are in C, dscore won't be affected
-        // edge's two vertexs are neither in C
-        if (v_in_c[edge[i].a] + v_in_c[edge[i].b] == 0) {
-            dscore[edge[i].a] += edge_weight[i];
-            dscore[edge[i].b] += edge_weight[i];
-        }
-        // one vertex is in C
-        else if (v_in_c[edge[i].a] + v_in_c[edge[i].b] == 1) {
-            if (v_in_c[edge[i].a])
-                dscore[edge[i].a] -= edge_weight[i];
-            else
-                dscore[edge[i].b] -= edge_weight[i];
+
+        // update d_score
+        int a_in_C = v_in_c[edge[i].a];
+        int b_in_C = v_in_c[edge[i].b];
+
+        if (a_in_C + b_in_C == 0) {
+            d_score[edge[i].a] += edge_weight[i];
+            d_score[edge[i].b] += edge_weight[i];
+        } else if (a_in_C + b_in_C == 1) {
+            d_score[a_in_C ? edge[i].a : edge[i].b] -= edge_weight[i];
         }
     }
+
     average_weight = sum_w / E;
 }
 
-// update edge weights
-void update_edge_weight(){
-    Set::iterator pi = uncovered.begin();
-    for (; pi != uncovered.end(); pi++) {
-        int tmpe = *pi;
+void update_edge_weight() {
+    for (int tmpe : uncovered) {
         edge_weight[tmpe]++;
-        dscore[edge[tmpe].a]++;
-        dscore[edge[tmpe].b]++;
-        
+        d_score[edge[tmpe].a]++;
+        d_score[edge[tmpe].b]++;
     }
+
     delta_weight += uncovered.size();
+    
     if (delta_weight >= E) {
         average_weight++;
         delta_weight -= E;
@@ -177,38 +154,38 @@ void init_() {
     delta_weight = 0;
     for (int i = 1; i <= V; i++) {
         conf_change[i] = 1;
-        dscore[i] = 0;
+        d_score[i] = 0;
         timer_mod[i] = 0;
         v_in_c[i] = 0;
         bestv_in_c[i] = 0;
     }
     for (int i = 1; i <= E; i++) {
         edge_weight[i] = 1;
-        dscore[edge[i].a] += edge_weight[i];
-        dscore[edge[i].b] += edge_weight[i];
+        d_score[edge[i].a] += edge_weight[i];
+        d_score[edge[i].b] += edge_weight[i];
         // At first, all the edges are uncovered
         uncovered.insert(i);
     }
 
     // Find a cover greedily
     while (!uncovered.empty()) {
-        int best_dscore = 0;
+        int best_d_score = 0;
         int best_cnt = 0;
         int best_idxs[MAXV] = {0};
         for (int v = 1; v <= V; v++) {
             if (v_in_c[v])
                 continue;
-            if (dscore[v] > best_dscore) {
-                best_dscore = dscore[v];
+            if (d_score[v] > best_d_score) {
+                best_d_score = d_score[v];
                 best_idxs[0] = v;
                 best_cnt = 1;
-            } else if (dscore[v] == best_dscore) {
-                // store all the idxs with the highest dscore
+            } else if (d_score[v] == best_d_score) {
+                // store all the idxs with the highest d_score
                 best_idxs[best_cnt++] = v;
             }
         }
         if (best_cnt > 0) {
-            add(best_idxs[rand() % best_cnt]);
+            vertex_add(best_idxs[rand() % best_cnt]);
         }
     }
 
@@ -220,36 +197,34 @@ void solve() {
     init_();
     int step = 0;
     while (step < cutoff) {
-        // printf("Step %d \n", step);
         if (uncovered.empty()) {
-            // whether to check the size before?-----[TO DO]
             if (C.size() < bestC.size())
                 update_bestC();
-            // choose a vertex in C with the highest dscore and remove it
+            // choose a vertex in C with the highest d_score and vertex_remove it
             Set::iterator pi = C.begin();
-            int best_dscore = -10000000;
+            int best_d_score = -10000000;
             int best_cnt = 0;
             int best_idxs[MAXV] = {0};
             for (; pi != C.end(); pi++) {
                 int tmpv = *pi;
-                if (dscore[tmpv] > best_dscore) {
-                    best_dscore = dscore[tmpv];
+                if (d_score[tmpv] > best_d_score) {
+                    best_d_score = d_score[tmpv];
                     best_idxs[0] = tmpv;
                     best_cnt = 1;
-                } else if (dscore[tmpv] == best_dscore) {
+                } else if (d_score[tmpv] == best_d_score) {
                     best_idxs[best_cnt++] = tmpv;
                 }
             }
             // breaking ties randomly
             if (best_cnt > 0) {
-                remove(best_idxs[rand() % best_cnt]);
+                vertex_remove(best_idxs[rand() % best_cnt]);
             }
             continue;
         }
 
-        // choose a u \in C with the highest dscore, in favor of the oldest
+        // choose a u \in C with the highest d_score, in favor of the oldest
         update_best_dscv();
-        remove(best_dscv);
+        vertex_remove(best_dscv);
         // choose an uncovered edge randomly
         int randidx = rand() % (uncovered.size());
         Set::iterator pi = uncovered.begin();
@@ -257,55 +232,62 @@ void solve() {
             pi++;
         int choose_edge = *pi;
 
-        // choose a vertex of choose_edge to be added to C
+        // choose a vertex of choose_edge to be vertex_added to C
         int v1 = edge[choose_edge].a, v2 = edge[choose_edge].b;
-        int best_addv = 0;
+        int best_vertex_addv = 0;
         // cuz choose_edge is uncovered, one of its 2 vertexs must be
         // Confchanged 1.
         if (conf_change[v1] == 0)
-            best_addv = v2;
+            best_vertex_addv = v2;
         else if (conf_change[v2] == 0)
-            best_addv = v1;
-        // Both confchanged 1, choose the one whose dscore's higher which is older
+            best_vertex_addv = v1;
+        // Both confchanged 1, choose the one whose d_score's higher which is older
         else {
-            if (dscore[v1] > dscore[v2] || (dscore[v1] == dscore[v2] && timer_mod[v1] < timer_mod[v2]))
-                best_addv = v1;
+            if (d_score[v1] > d_score[v2] || (d_score[v1] == d_score[v2] && timer_mod[v1] < timer_mod[v2]))
+                best_vertex_addv = v1;
             else
-                best_addv = v2;
+                best_vertex_addv = v2;
         }
-        add(best_addv);
-        timer_mod[best_addv] = timer_mod[best_dscv] = step;
-        tabu_remove = best_addv;
+        vertex_add(best_vertex_addv);
+        timer_mod[best_vertex_addv] = timer_mod[best_dscv] = step;
+        tabu_remove = best_vertex_addv;
         update_edge_weight();
         step++;
     }
 }
 
-// Check if the res is valid
-bool is_VC(){
-    for (int i = 1; i <= E; i++) {
+bool check_valid() {
+    for (int i = 1; i <= E; ++i) {
         if (bestv_in_c[edge[i].a] == 0 && bestv_in_c[edge[i].b] == 0) {
-            //printf("Error!!! The Found C isn't a vertex cover.\n");
             return false;
         }
     }
     return true;
 }
 
-// print the result
-void print_res(){
-    printf("%d\n", V - bestC.size());
+
+void print_res() {
+    cout << V - bestC.size() << '\n';
+
     bool firstone = true;
-    for (int i = 1; i <= V; i++) {
+    for (int i = 1; i <= V; ++i) {
         if (!bestv_in_c[i]) {
-            if (firstone) {
-                printf("%d", i);
-                firstone = false;
-            }
-            else {
-                printf(" %d", i);
-            }
+            cout << (firstone ? "" : " ") << i;
+            firstone = false;
         }
     }
-    printf("\n");
+
+    cout << '\n';
+}
+
+void clear_workspace(){
+    memset(G, 0, sizeof(G));
+    memset(edge, 0, sizeof(edge));
+    memset(conf_change, 0, sizeof(conf_change));
+    C.clear();
+    uncovered.clear();
+    bestC.clear();
+
+    for (int i = 1; i <= V; i++)
+    v_to_e[i].clear();
 }

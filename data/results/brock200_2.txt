@@ -3,7 +3,7 @@
     \rho: 0.300000    cutoff: 60000    threshold: 100
 
 ----------------Results:--------------
-The found clique size is 11.
+The found clique size is 12.
 The found clique:
-11
-30 36 84 85 102 118 150 163 176 183 200
+12
+27 48 55 70 105 120 121 135 145 149 158 183
