@@ -27,6 +27,7 @@ Set C;
 Set bestC;
 Set uncovered;
 Set v_to_e[MAXV];
+Edge edge[MAXE];
 
 Edge::Edge() {
     // 默认构造函数的实现
@@ -37,15 +38,16 @@ Edge::Edge(int aa, int bb) : a(aa), b(bb) {
 }
 
 
+// cover the edge e
 void cover(int e) {
     uncovered.erase(e);
 }
-
+// uncover the edge e
 void uncover(int e) {
     uncovered.insert(e);
 }
 
-void add(Edge edge[], int v) {
+void add(int v) {
     C.insert(v);
     v_in_c[v] = 1;
     dscore[v] = -dscore[v];
@@ -67,7 +69,8 @@ void add(Edge edge[], int v) {
     }
 }
 
-void remove(Edge edge[], int v) {
+// remove v from C
+void remove(int v) {
     C.erase(v);
     v_in_c[v] = 0;
     dscore[v] = -dscore[v];
@@ -91,6 +94,7 @@ void remove(Edge edge[], int v) {
     }
 }
 
+// Update bestC as C
 void update_bestC() {
     // bestC.clear();
     bestC.assign(C.begin(), C.end());
@@ -99,6 +103,7 @@ void update_bestC() {
     }
 }
 
+// update best dscore v with oldest time
 void update_best_dscv() {
     Set::iterator pi = C.begin();
     best_dscv = *pi++;
@@ -118,7 +123,7 @@ void update_best_dscv() {
 }
 
 // weight forgetting mechanism
-void forget_edge_weight(Edge edge[]){
+void forget_edge_weight(){
     int sum_w = 0;
     memset(dscore, 0, sizeof(dscore));
 
@@ -144,7 +149,8 @@ void forget_edge_weight(Edge edge[]){
     average_weight = sum_w / E;
 }
 
-void update_edge_weight(Edge edge[]){
+// update edge weights
+void update_edge_weight(){
     Set::iterator pi = uncovered.begin();
     for (; pi != uncovered.end(); pi++) {
         int tmpe = *pi;
@@ -161,11 +167,12 @@ void update_edge_weight(Edge edge[]){
 
     // Forget weights if ave_w reaches threshold
     if (average_weight >= threshold) {
-        forget_edge_weight(edge);
+        forget_edge_weight();
     }
 }
 
-void init_(Edge edge[]) {
+// init the datas for the gragh and find the oroginal C greedily
+void init_() {
     average_weight = 1;
     delta_weight = 0;
     for (int i = 1; i <= V; i++) {
@@ -201,7 +208,7 @@ void init_(Edge edge[]) {
             }
         }
         if (best_cnt > 0) {
-            add(edge, best_idxs[rand() % best_cnt]);
+            add(best_idxs[rand() % best_cnt]);
         }
     }
 
@@ -209,8 +216,8 @@ void init_(Edge edge[]) {
 }
 
 // NuMVC algorithm
-void solve(Edge edge[]) {
-    init_(edge);
+void solve() {
+    init_();
     int step = 0;
     while (step < cutoff) {
         // printf("Step %d \n", step);
@@ -235,14 +242,14 @@ void solve(Edge edge[]) {
             }
             // breaking ties randomly
             if (best_cnt > 0) {
-                remove(edge, best_idxs[rand() % best_cnt]);
+                remove(best_idxs[rand() % best_cnt]);
             }
             continue;
         }
 
         // choose a u \in C with the highest dscore, in favor of the oldest
         update_best_dscv();
-        remove(edge, best_dscv);
+        remove(best_dscv);
         // choose an uncovered edge randomly
         int randidx = rand() % (uncovered.size());
         Set::iterator pi = uncovered.begin();
@@ -266,16 +273,16 @@ void solve(Edge edge[]) {
             else
                 best_addv = v2;
         }
-        add(edge, best_addv);
+        add(best_addv);
         timer_mod[best_addv] = timer_mod[best_dscv] = step;
         tabu_remove = best_addv;
-        update_edge_weight(edge);
+        update_edge_weight();
         step++;
     }
 }
 
 // Check if the res is valid
-bool is_VC(Edge edge[]){
+bool is_VC(){
     for (int i = 1; i <= E; i++) {
         if (bestv_in_c[edge[i].a] == 0 && bestv_in_c[edge[i].b] == 0) {
             //printf("Error!!! The Found C isn't a vertex cover.\n");

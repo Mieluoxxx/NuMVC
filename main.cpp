@@ -6,15 +6,18 @@ using namespace std;
 
 
 int main(int argc, char* argv[]) {
-    string filename = "p_hat1500-1.txt";
-    string rootPath = "/Users/moguw/Github/NuMVC/";
+    string filename = "brock800_4.txt";
+    // string rootPath = "/Users/moguw/Github/NuMVC/";
+    string rootPath = "C:/Users/weiyi/Github/NuMVC/";
+
     string rawPath = rootPath + "data/raw/" + filename;
     string processedPath = rootPath + "data/processed/" + filename;
     string resultsPath = rootPath + "data/results/" + filename;
 
     freopen(processedPath.c_str(), "r", stdin);
     freopen(resultsPath.c_str(), "w", stdout);
-    Edge edge[MAXE];
+
+
     srand(unsigned(time(NULL)));
     while (scanf("%d%d", &V, &E) != EOF) {
         // Build the graph
@@ -44,6 +47,7 @@ int main(int argc, char* argv[]) {
                     numedge++;
                 }
         E = numedge - 1;
+
         // ---Set the parameters here.------------
         cutoff = V * 300;
         threshold = (int)(0.5 * V);
@@ -54,9 +58,9 @@ int main(int argc, char* argv[]) {
         printf("\n----------------Results:--------------\n");
 
         // Search using NuMVC
-        solve(edge);
+        solve();
         // Check if the res is valid
-        if (is_VC(edge)) {
+        if (is_VC()) {
             printf("The found clique size is %d.\n", V - bestC.size());
             printf("The found clique:\n");
             print_res();

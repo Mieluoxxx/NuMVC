@@ -1,0 +1,9 @@
+----------------Parameters:--------------
+      V: 200    E: 10024
+    \rho: 0.300000    cutoff: 60000    threshold: 100
+
+----------------Results:--------------
+The found clique size is 11.
+The found clique:
+11
+30 36 84 85 102 118 150 163 176 183 200
